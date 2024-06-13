@@ -5,14 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.AlertDialog
@@ -95,6 +90,7 @@ class HomeActivity : ComponentActivity() {
             "https://www.gardendesign.com/pictures/images/675x529Max/site_3/helianthus-yellow-flower-pixabay_11863.jpg"
         ),
     )
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,6 +106,7 @@ class HomeActivity : ComponentActivity() {
             var newFlowerName by remember { mutableStateOf("") }
             var newFlowerPrice by remember { mutableStateOf("") }
             var newFlowerUrl by remember { mutableStateOf("") }
+            var showAddDialog by remember { mutableStateOf(false) }
 
             // Function to update flower details
             fun updateFlower(updatedFlower: Flower) {
@@ -119,50 +116,73 @@ class HomeActivity : ComponentActivity() {
                 }
             }
 
+            // Function to add a new flower
+            fun addFlower() {
+                val newFlower = Flower(
+                    id = (DanhSach.maxOfOrNull { it.id } ?: 0) + 1,
+                    name = newFlowerName,
+                    price = newFlowerPrice,
+                    url = newFlowerUrl
+                )
+                DanhSach = DanhSach.toMutableList().apply { add(newFlower) }
+                newFlowerName = ""
+                newFlowerPrice = ""
+                newFlowerUrl = ""
+                showAddDialog = false
+            }
 
-            LazyColumn(
-                modifier = Modifier
-                    .background(Color.White)
-                    .fillMaxSize(),
-//                columns = GridCells.Fixed(3)
-            ) {
-                items(DanhSach.size) { viTri ->
-                    val flower = DanhSach.get(viTri)
-                    Column {
-                        AsyncImage(
-                            modifier = Modifier.size(410.dp, 300.dp),
-                            contentScale = ContentScale.Crop,
-                            model = flower.url, contentDescription = ""
-                        )
-                        Text(text = "ID: ${flower.id}")
-                        Text(text = "Name: ${flower.name}")
-                        Text(text = "Price: ${flower.price}")
-                        Row {
-                            Button(onClick = {
-                                // 1 mo dialog
-                                selectedFlower = flower
-                                // 2 mo man hinh moi
-                                // 3. hien thi thong tin bang Toast
-                            }) {
-                                Text(text = "Detail")
+            Scaffold(
+                floatingActionButton = {
+                    Button(onClick = { showAddDialog = true }) {
+                        Text(text = "Add Flower")
+                    }
+                }
+            ) { paddingValues ->
+                    LazyColumn(
+                    modifier = Modifier
+                        .background(Color.White)
+                        .fillMaxWidth()
+                        .padding(paddingValues),
+//                        columns = GridCells.Fixed(3)
+                ) {
+                    items(DanhSach.size) { viTri ->
+                        val flower = DanhSach[viTri]
+                        Column {
+                                AsyncImage(
+                                    modifier = Modifier.size(410.dp, 300.dp),
+                                    contentScale = ContentScale.Crop,
+                                    model = flower.url, contentDescription = ""
+                                )
+                                Text(text = "ID: ${flower.id}")
+                                Text(text = "Name: ${flower.name}")
+                                Text(text = "Price: ${flower.price}")
+
+                                Button(onClick = {
+                                    // 1 mo dialog
+                                    selectedFlower = flower
+                                    // 2 mo man hinh moi
+                                    // 3. hien thi thong tin bang Toast
+                                }) {
+                                    Text(text = "Detail")
+                                }
+                                Button(onClick = {
+                                    DanhSach = DanhSach.toMutableList().apply { remove(flower) }
+                                }) {
+                                    Text(text = "Delete")
+                                }
+                                Button(onClick = {
+                                    update = flower
+                                    newFlowerName = flower.name
+                                    newFlowerPrice = flower.price
+                                    newFlowerUrl = flower.url
+                                }) {
+                                    Text(text = "Update")
                             }
-                            Button(onClick = {
-                                DanhSach = DanhSach.toMutableList().apply { remove(flower) }
-                            }) {
-                                Text(text = "Delete")
-                            }
-                            Button(onClick = {
-                                update = flower
-                                newFlowerName = flower.name
-                                newFlowerPrice = flower.price
-                                newFlowerUrl = flower.url
-                            }) {
-                                Text(text = "Update")
-                            }
-                        }                                      
+                        }
                     }
                 }
             }
+
             // Dialog for updating flower details
             update?.let {
                 AlertDialog(
@@ -195,6 +215,50 @@ class HomeActivity : ComponentActivity() {
                                 newFlowerPrice = ""
                                 newFlowerUrl = ""
                             }
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    text = {
+                        Column {
+                            TextField(
+                                value = newFlowerName,
+                                onValueChange = { newFlowerName = it },
+                                label = { Text("Name") },
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                            TextField(
+                                value = newFlowerPrice,
+                                onValueChange = { newFlowerPrice = it },
+                                label = { Text("Price") },
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                            TextField(
+                                value = newFlowerUrl,
+                                onValueChange = { newFlowerUrl = it },
+                                label = { Text("Image URL") },
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
+                )
+            }
+
+            // Dialog for adding a new flower
+            if (showAddDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAddDialog = false },
+                    title = { Text("Add Flower") },
+                    confirmButton = {
+                        Button(
+                            onClick = { addFlower() }
+                        ) {
+                            Text("Add")
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showAddDialog = false }
                         ) {
                             Text("Cancel")
                         }
